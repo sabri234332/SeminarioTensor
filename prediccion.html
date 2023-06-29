@@ -1,0 +1,99 @@
+<!DOCTYPE html>
+<html>
+<head>
+  <title>Predicción de Y</title>
+  <script src="https://cdn.jsdelivr.net/npm/@tensorflow/tfjs@3.14.0/dist/tf.min.js"></script>
+  <script src="https://cdn.jsdelivr.net/npm/chart.js@2.9.4"></script>
+</head>
+<body>
+  <h2>Ingrese un número:</h2>
+  <input type="number" id="inputX">
+  <button onclick="trainAndPredict()">Predecir</button>
+  <p id="result"></p>
+  <canvas id="loss-chart"></canvas>
+
+  <script>
+    async function trainAndPredict() {
+      const inputX = document.getElementById('inputX');
+      const resultDiv = document.getElementById('result');
+
+      const x = parseFloat(inputX.value);
+
+      if (isNaN(x)) {
+        resultDiv.innerText = 'Por favor, ingresa un valor numérico válido.';
+        return;
+      }
+
+      // Crear el modelo
+      const model = tf.sequential();
+      model.add(tf.layers.dense({ units: 1, inputShape: [1] }));
+      model.compile({ loss: 'meanSquaredError', optimizer: 'sgd' });
+
+      // Datos de entrenamiento
+      const xs = tf.tensor2d([
+                             -18, -17, -16, -15, -14, -13, -12, -11, 
+                             -10, -9,-8, -7, -6, -5, -4, -3, -2, -1,0,1,2,3,4,5,6,7,8,9,10],[29,1],"int32");
+                                             
+
+      const ys = tf.tensor2d([
+                          
+                             -28, -26, -24, -22, -20, -18, -16, -14,
+                             -12, -10, -8, -6, -4, -2, 0, 2, 4, 6,8,10,12,14,16,18,20,22,24,26,28],[29, 1],"int32");
+
+
+      // Configurar la gráfica de la función de pérdida
+      const lossChartCanvas = document.getElementById('loss-chart');
+      const lossChartData = {
+        labels: [],
+        datasets: [{
+          label: 'Loss',
+          borderColor: 'blue',
+          fill: false,
+          data: [],
+        }],
+      };
+      const lossChartOptions = {
+        responsive: true,
+        maintainAspectRatio: false,
+        scales: {
+          x: {
+            display: true,
+            title: {
+              display: true,
+              text: 'Epoch',
+            },
+          },
+          y: {
+            display: true,
+            title: {
+              display: true,
+              text: 'Loss',
+            },
+          },
+        },
+      };
+      const lossChart = new Chart(lossChartCanvas, {
+        type: 'line',
+        data: lossChartData,
+        options: lossChartOptions,
+      });
+
+      // Entrenamiento del modelo
+      const epochs = 525;
+      for (let i = 0; i < epochs; i++) {
+        const history = await model.fit(xs, ys, { epochs: 1 });
+        const loss = history.history.loss[0];
+        lossChart.data.labels.push(i + 1);
+        lossChart.data.datasets[0].data.push(loss);
+        lossChart.update();
+      }
+
+      // Predicción
+      const prediction = model.predict(tf.tensor2d([[x]], [1, 1]));
+      const predictedValue = prediction.dataSync()[0];
+
+      resultDiv.innerText = `Para x = ${x}, la predicción de y es ${predictedValue}.`;
+    }
+  </script>
+</body>
+</html>
